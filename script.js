@@ -2,11 +2,11 @@
  * Space Shooter - Arena Triangular
  * 
  * Controles:
- * - Teclado: WASD ou Setas para mover
+ * - Teclado: WASD ou Setas para mover | ESPAÇO para atirar
  * - Mobile: Botões na tela
- * - Mouse/Toque: Atirar (clique na tela)
+ * - Mouse/Toque: Atirar
  * 
- * Inimigos: Triângulos vermelhos que perseguem o jogador
+ * Inimigos: Velocidade aumenta gradualmente com o tempo
  */
 
 // ==================== CONFIGURAÇÕES ====================
@@ -24,6 +24,7 @@ let gameStarted = false;
 let score = 0;
 let kills = 0;
 let lives = 3;
+let gameTime = 0; // Tempo de jogo para aumentar dificuldade
 
 // ==================== JOGADOR ====================
 const player = {
@@ -44,12 +45,12 @@ const player = {
 // ==================== TIROS ====================
 let bullets = [];
 let shootCooldown = 0;
-let autoShoot = false;
 
 // ==================== INIMIGOS ====================
 let enemies = [];
 let explosions = [];
 let enemySpawnCounter = 0;
+let enemyBaseSpeed = 0.8; // Velocidade base mais lenta
 
 // ==================== MOBILE CONTROLS ====================
 let mobileUp = false, mobileDown = false, mobileLeft = false, mobileRight = false;
@@ -57,7 +58,8 @@ let mobileUp = false, mobileDown = false, mobileLeft = false, mobileRight = fals
 // ==================== TECLAS ====================
 const keys = {
     ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
-    KeyW: false, KeyS: false, KeyA: false, KeyD: false
+    KeyW: false, KeyS: false, KeyA: false, KeyD: false,
+    Space: false
 };
 
 // ==================== CLASSE DE EXPLOSÃO ====================
@@ -102,11 +104,13 @@ class Explosion {
 
 // ==================== INIMIGO ====================
 class Enemy {
-    constructor(x, y) {
+    constructor(x, y, speedMultiplier = 1) {
         this.x = x;
         this.y = y;
         this.radius = 10;
-        this.speed = 1.3;
+        // Velocidade base + aumento gradual baseado no tempo de jogo
+        const currentSpeed = enemyBaseSpeed + (gameTime / 30);
+        this.speed = Math.min(currentSpeed, 3.5) * speedMultiplier;
         this.angle = Math.atan2(player.y - y, player.x - x);
     }
     
@@ -126,7 +130,12 @@ class Enemy {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
         
-        ctx.fillStyle = '#ff3366';
+        // Cor muda conforme a velocidade (quanto mais rápido, mais claro)
+        const speedPercent = Math.min(1, (this.speed - 0.8) / 3);
+        const r = 255;
+        const g = 51 + Math.floor(204 * speedPercent);
+        const b = 51 + Math.floor(100 * speedPercent);
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
         ctx.shadowBlur = 6;
         ctx.shadowColor = '#ff3366';
         ctx.beginPath();
@@ -183,6 +192,11 @@ function updatePlayer(deltaTime) {
     if (player.invincibleTimer > 0) {
         player.invincibleTimer -= deltaTime;
     }
+    
+    // Tecla Espaço para atirar
+    if (keys.Space && gameRunning) {
+        shoot();
+    }
 }
 
 // ==================== TIROS ====================
@@ -229,22 +243,25 @@ function spawnEnemy() {
         case 2: x = Math.random() * WIDTH; y = HEIGHT + 30; break;
         default: x = -30; y = Math.random() * HEIGHT;
     }
-    enemies.push(new Enemy(x, y));
+    // Multiplicador de velocidade baseado no kills (quanto mais mata, mais rápido)
+    const speedMultiplier = 1 + (kills / 100);
+    enemies.push(new Enemy(x, y, speedMultiplier));
 }
 
 function updateEnemies(deltaTime) {
-    // Spawn
+    // Spawn - fica mais frequente com o tempo
+    let spawnDelay = Math.max(25, 50 - Math.floor(gameTime / 8) - Math.floor(kills / 15));
     if (enemySpawnCounter <= 0) {
-        const spawnCount = Math.min(2 + Math.floor(kills / 20), 5);
+        const spawnCount = Math.min(2 + Math.floor(kills / 25), 4);
         for (let i = 0; i < spawnCount; i++) {
             spawnEnemy();
         }
-        enemySpawnCounter = 50 - Math.min(30, Math.floor(kills / 8));
+        enemySpawnCounter = spawnDelay;
     } else {
         enemySpawnCounter -= deltaTime * 60;
     }
     
-    // Atualizar
+    // Atualizar inimigos
     for (let i = 0; i < enemies.length; i++) {
         const active = enemies[i].update(deltaTime);
         if (!active) {
@@ -322,6 +339,14 @@ function drawStars() {
         ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
         ctx.fill();
     }
+    
+    // Mostrar dificuldade atual
+    if (gameRunning) {
+        ctx.font = "12px monospace";
+        ctx.fillStyle = "#ffffff88";
+        ctx.shadowBlur = 0;
+        ctx.fillText(`Velocidade: ${((enemyBaseSpeed + (gameTime / 30)) * (1 + kills/100)).toFixed(1)}`, 10, 50);
+    }
 }
 
 function drawPlayer() {
@@ -343,7 +368,7 @@ function drawPlayer() {
     ctx.closePath();
     ctx.fill();
     
-    // Rastro
+    // Rastro de propulsão
     if ((keys.ArrowUp || keys.KeyW || mobileUp) && gameRunning) {
         ctx.fillStyle = '#ff6600';
         ctx.beginPath();
@@ -397,6 +422,8 @@ function restartGame() {
     score = 0;
     kills = 0;
     lives = 3;
+    gameTime = 0;
+    enemyBaseSpeed = 0.8;
     
     player.x = WIDTH / 2;
     player.y = HEIGHT / 2;
@@ -423,6 +450,8 @@ function startGame() {
     score = 0;
     kills = 0;
     lives = 3;
+    gameTime = 0;
+    enemyBaseSpeed = 0.8;
     
     player.x = WIDTH / 2;
     player.y = HEIGHT / 2;
@@ -472,12 +501,22 @@ document.addEventListener('keydown', (e) => {
         keys[code] = true;
         e.preventDefault();
     }
+    // Espaço para atirar
+    if (code === 'Space') {
+        keys.Space = true;
+        if (gameRunning) shoot();
+        e.preventDefault();
+    }
 });
 
 document.addEventListener('keyup', (e) => {
     const code = e.code;
     if (keys.hasOwnProperty(code)) {
         keys[code] = false;
+        e.preventDefault();
+    }
+    if (code === 'Space') {
+        keys.Space = false;
         e.preventDefault();
     }
 });
@@ -574,6 +613,14 @@ let lastTimestamp = 0;
 function gameLoop(timestamp) {
     let deltaTime = Math.min(0.033, (timestamp - lastTimestamp) / 1000);
     if (deltaTime < 0.01) deltaTime = 0.016;
+    
+    // Atualizar tempo de jogo (para dificuldade)
+    if (gameRunning && gameStarted) {
+        gameTime += deltaTime;
+        // Aumenta velocidade base dos inimigos gradualmente
+        enemyBaseSpeed = 0.8 + (gameTime / 40);
+        if (enemyBaseSpeed > 3.2) enemyBaseSpeed = 3.2;
+    }
     
     // Limpar
     ctx.fillStyle = '#050510';
