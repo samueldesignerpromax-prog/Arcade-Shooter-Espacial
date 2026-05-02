@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Space Shooter - Arena Triangular</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -16,12 +16,10 @@
                 <h1>🚀 SPACE SHOOTER 🚀</h1>
                 <p>Destrua as naves inimigas e sobreviva!</p>
                 <div class="controls-demo">
-                    <div class="control-icon">← → ↑ ↓</div>
-                    <span>ou</span>
-                    <div class="control-icon">W A S D</div>
-                    <span>Mover</span>
-                    <div class="control-icon">🖱️ Clique</div>
-                    <span>Atirar</span>
+                    <div class="control-icon">🎮</div>
+                    <span>Botões na tela</span>
+                    <div class="control-icon">⌨️</div>
+                    <span>Teclado</span>
                 </div>
                 <button id="startButton" class="start-btn">▶ INICIAR JOGO</button>
             </div>
@@ -43,6 +41,21 @@
             </div>
         </div>
         
+        <!-- Controles Mobile -->
+        <div class="mobile-controls hidden" id="mobileControls">
+            <div class="control-stick">
+                <button class="ctrl-btn" id="btnUp">▲</button>
+                <div class="ctrl-row">
+                    <button class="ctrl-btn" id="btnLeft">◀</button>
+                    <button class="ctrl-btn" id="btnDown">▼</button>
+                    <button class="ctrl-btn" id="btnRight">▶</button>
+                </div>
+            </div>
+            <div class="control-shoot">
+                <button class="ctrl-btn shoot-btn" id="btnShoot">🔫</button>
+            </div>
+        </div>
+        
         <!-- Tela de Game Over -->
         <div id="gameOverlay" class="game-overlay hidden">
             <div class="overlay-card">
@@ -57,7 +70,7 @@
         
         <!-- Instruções -->
         <div class="instructions hidden" id="instructions">
-            <span>← → ↑ ↓</span> Mover • <span>Clique</span> Atirar
+            <span>← → ↑ ↓</span> Mover • <span>Clique/Botão</span> Atirar
         </div>
     </div>
     
