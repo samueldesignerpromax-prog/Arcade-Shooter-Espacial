@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Space Shooter - Arcade Espacial</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="900" height="650"></canvas>
+        
+        <!-- UI do Jogo -->
+        <div class="ui-panel">
+            <div class="ui-left">
+                <div class="stat-card">
+                    <div class="stat-icon">❤️</div>
+                    <div class="stat-value" id="livesValue">3</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-value" id="scoreValue">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💀</div>
+                    <div class="stat-value" id="enemiesValue">0</div>
+                </div>
+            </div>
+            <div class="ui-center">
+                <div class="stat-card laser-card">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-info">
+                        <div class="stat-label">LASER</div>
+                        <div class="laser-bar-bg">
+                            <div class="laser-bar-fill" id="laserBarFill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="ui-right">
+                <div class="stat-card">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-value" id="highScoreValue">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🛡️</div>
+                    <div class="stat-value" id="waveValue">1</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Power-ups UI -->
+        <div class="powerups-ui" id="powerupsUI"></div>
+        
+        <!-- Instruções -->
+        <div class="instructions">
+            <span>WASD/←→↑↓</span> Mover • <span>Click/Mouse</span> Atirar • <span>Espaço/E</span> Laser
+        </div>
+        
+        <!-- Controles Mobile -->
+        <div class="mobile-controls" id="mobileControls">
+            <div class="ctrl-stick">
+                <button class="ctrl-btn" id="btnUp">▲</button>
+                <div class="ctrl-row">
+                    <button class="ctrl-btn" id="btnLeft">◀</button>
+                    <button class="ctrl-btn" id="btnDown">▼</button>
+                    <button class="ctrl-btn" id="btnRight">▶</button>
+                </div>
+            </div>
+            <div class="ctrl-actions">
+                <button class="ctrl-btn action" id="btnShoot">🔫</button>
+                <button class="ctrl-btn action" id="btnLaser">⚡</button>
+            </div>
+        </div>
+        
+        <!-- Tela de Game Over -->
+        <div id="gameOverlay" class="game-overlay hidden">
+            <div class="overlay-card">
+                <h2>💀 GAME OVER 💀</h2>
+                <div class="final-stats">
+                    <p>Pontuação: <span id="finalScore">0</span></p>
+                    <p>Inimigos destruídos: <span id="finalKills">0</span></p>
+                    <p>Onda: <span id="finalWave">1</span></p>
+                </div>
+                <button id="restartButton" class="action-btn">🔄 JOGAR NOVAMENTE</button>
+            </div>
+        </div>
+        
+        <!-- Efeito de explosão (Canvas overlay) -->
+        <div id="flashEffect" class="flash-effect hidden"></div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
