@@ -3,6 +3,7 @@
     padding: 0;
     box-sizing: border-box;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -13,6 +14,7 @@ body {
     align-items: center;
     font-family: 'Courier New', monospace;
     padding: 20px;
+    touch-action: none;
 }
 
 .game-container {
@@ -28,6 +30,7 @@ canvas {
     background: #050510;
     border: 2px solid #00ffff33;
     cursor: crosshair;
+    touch-action: none;
 }
 
 /* Tela de Início */
@@ -87,6 +90,7 @@ canvas {
     color: #00ffff;
     font-weight: bold;
     border: 1px solid #00ffff;
+    font-size: 20px;
 }
 
 .start-btn {
@@ -101,9 +105,8 @@ canvas {
     transition: all 0.2s;
 }
 
-.start-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px #00ffff;
+.start-btn:active {
+    transform: scale(0.95);
 }
 
 /* UI do Jogo */
@@ -140,6 +143,79 @@ canvas {
     font-weight: bold;
     color: #00ffff;
     font-family: monospace;
+}
+
+/* Controles Mobile */
+.mobile-controls {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: none;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 15;
+    pointer-events: none;
+}
+
+.mobile-controls.show {
+    display: flex;
+}
+
+.control-stick {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    padding: 15px;
+    border-radius: 80px;
+    border: 1px solid #00ffff66;
+    pointer-events: auto;
+}
+
+.control-shoot {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    padding: 15px;
+    border-radius: 80px;
+    border: 1px solid #ff336666;
+    pointer-events: auto;
+}
+
+.ctrl-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+.ctrl-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 35px;
+    background: linear-gradient(135deg, #1a1a3a, #16213e);
+    border: 2px solid #00ffff;
+    font-size: 28px;
+    cursor: pointer;
+    color: #00ffff;
+    font-weight: bold;
+    transition: all 0.05s linear;
+    touch-action: manipulation;
+}
+
+.ctrl-btn:active {
+    transform: scale(0.92);
+    background: #00ffff33;
+}
+
+.shoot-btn {
+    border-color: #ff3366;
+    color: #ff3366;
+    font-size: 32px;
+    width: 70px;
+    height: 70px;
+}
+
+.shoot-btn:active {
+    background: #ff336633;
 }
 
 /* Game Over Overlay */
@@ -209,9 +285,8 @@ canvas {
     margin-top: 10px;
 }
 
-.action-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px #00ffff;
+.action-btn:active {
+    transform: scale(0.95);
 }
 
 .instructions {
@@ -270,5 +345,33 @@ canvas {
     
     .stat-card {
         padding: 5px 12px;
+    }
+    
+    .ctrl-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+    }
+    
+    .shoot-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 28px;
+    }
+}
+
+@media (max-width: 768px) {
+    .mobile-controls {
+        display: flex;
+    }
+    
+    .instructions {
+        display: none;
+    }
+}
+
+@media (min-width: 769px) {
+    .mobile-controls {
+        display: none !important;
     }
 }
