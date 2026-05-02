@@ -2,11 +2,11 @@
  * Space Shooter - Arena Triangular
  * 
  * Controles:
- * - WASD ou Setas: Movimento da nave (triângulo azul)
- * - Clique do mouse: Atirar projéteis
+ * - Teclado: WASD ou Setas para mover
+ * - Mobile: Botões na tela
+ * - Mouse/Toque: Atirar (clique na tela)
  * 
  * Inimigos: Triângulos vermelhos que perseguem o jogador
- * Sistema de vidas: 3 vidas, game over ao perder todas
  */
 
 // ==================== CONFIGURAÇÕES ====================
@@ -25,7 +25,7 @@ let score = 0;
 let kills = 0;
 let lives = 3;
 
-// ==================== JOGADOR (TRIÂNGULO) ====================
+// ==================== JOGADOR ====================
 const player = {
     x: WIDTH / 2,
     y: HEIGHT / 2,
@@ -34,8 +34,8 @@ const player = {
     speed: 0,
     vx: 0,
     vy: 0,
-    acceleration: 0.4,
-    maxSpeed: 5,
+    acceleration: 0.45,
+    maxSpeed: 5.5,
     friction: 0.98,
     rotationSpeed: 0.12,
     invincibleTimer: 0
@@ -44,16 +44,15 @@ const player = {
 // ==================== TIROS ====================
 let bullets = [];
 let shootCooldown = 0;
+let autoShoot = false;
 
 // ==================== INIMIGOS ====================
 let enemies = [];
 let explosions = [];
 let enemySpawnCounter = 0;
 
-// ==================== MOUSE ====================
-let mouseX = WIDTH / 2;
-let mouseY = HEIGHT / 2;
-let mousePressed = false;
+// ==================== MOBILE CONTROLS ====================
+let mobileUp = false, mobileDown = false, mobileLeft = false, mobileRight = false;
 
 // ==================== TECLAS ====================
 const keys = {
@@ -67,17 +66,16 @@ class Explosion {
         this.x = x;
         this.y = y;
         this.particles = [];
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 12; i++) {
             this.particles.push({
-                x: x,
-                y: y,
-                vx: (Math.random() - 0.5) * 6,
-                vy: (Math.random() - 0.5) * 6,
-                life: 0.4,
-                size: 2 + Math.random() * 3
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 7,
+                vy: (Math.random() - 0.5) * 7,
+                life: 0.5,
+                size: 2 + Math.random() * 4
             });
         }
-        this.life = 0.4;
+        this.life = 0.5;
     }
     
     update(deltaTime) {
@@ -93,7 +91,7 @@ class Explosion {
     draw() {
         for (let p of this.particles) {
             ctx.globalAlpha = Math.min(1, p.life * 2);
-            ctx.fillStyle = '#ff6600';
+            ctx.fillStyle = `hsl(${20 + Math.random() * 40}, 100%, 55%)`;
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             ctx.fill();
@@ -102,14 +100,60 @@ class Explosion {
     }
 }
 
+// ==================== INIMIGO ====================
+class Enemy {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 10;
+        this.speed = 1.3;
+        this.angle = Math.atan2(player.y - y, player.x - x);
+    }
+    
+    update(deltaTime) {
+        const dx = player.x - this.x;
+        const dy = player.y - this.y;
+        if (Math.hypot(dx, dy) > 0.01) {
+            this.angle = Math.atan2(dy, dx);
+            this.x += Math.cos(this.angle) * this.speed * deltaTime * 60;
+            this.y += Math.sin(this.angle) * this.speed * deltaTime * 60;
+        }
+        return this.x > -50 && this.x < WIDTH + 50 && this.y > -50 && this.y < HEIGHT + 50;
+    }
+    
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        
+        ctx.fillStyle = '#ff3366';
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = '#ff3366';
+        ctx.beginPath();
+        ctx.moveTo(14, 0);
+        ctx.lineTo(-8, -6);
+        ctx.lineTo(-8, 6);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.restore();
+    }
+}
+
 // ==================== FUNÇÕES DO JOGADOR ====================
 function updatePlayer(deltaTime) {
-    // Rotação com teclas A/D ou setas
+    // Teclado
     if (keys.ArrowLeft || keys.KeyA) player.angle -= player.rotationSpeed * deltaTime * 60;
     if (keys.ArrowRight || keys.KeyD) player.angle += player.rotationSpeed * deltaTime * 60;
-    
-    // Aceleração com W/seta cima
     if (keys.ArrowUp || keys.KeyW) {
+        player.vx += Math.cos(player.angle) * player.acceleration * deltaTime * 60;
+        player.vy += Math.sin(player.angle) * player.acceleration * deltaTime * 60;
+    }
+    
+    // Mobile
+    if (mobileLeft) player.angle -= player.rotationSpeed * deltaTime * 60;
+    if (mobileRight) player.angle += player.rotationSpeed * deltaTime * 60;
+    if (mobileUp) {
         player.vx += Math.cos(player.angle) * player.acceleration * deltaTime * 60;
         player.vy += Math.sin(player.angle) * player.acceleration * deltaTime * 60;
     }
@@ -125,7 +169,7 @@ function updatePlayer(deltaTime) {
         player.vy = (player.vy / speed) * player.maxSpeed;
     }
     
-    // Atualizar posição
+    // Posição
     player.x += player.vx * deltaTime * 60;
     player.y += player.vy * deltaTime * 60;
     
@@ -135,7 +179,7 @@ function updatePlayer(deltaTime) {
     if (player.y < -30) player.y = HEIGHT + 30;
     if (player.y > HEIGHT + 30) player.y = -30;
     
-    // Timer de invencibilidade
+    // Invencibilidade
     if (player.invincibleTimer > 0) {
         player.invincibleTimer -= deltaTime;
     }
@@ -148,14 +192,12 @@ function shoot() {
         bullets.push({
             x: player.x + Math.cos(player.angle) * 18,
             y: player.y + Math.sin(player.angle) * 18,
-            vx: Math.cos(player.angle) * 9,
-            vy: Math.sin(player.angle) * 9,
+            vx: Math.cos(player.angle) * 10,
+            vy: Math.sin(player.angle) * 10,
             radius: 5,
             life: 1.5
         });
-        shootCooldown = 12;
-        
-        // Som simples (opcional)
+        shootCooldown = 10;
         playSound();
     }
 }
@@ -178,49 +220,6 @@ function updateBullets(deltaTime) {
 }
 
 // ==================== INIMIGOS ====================
-class Enemy {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.radius = 10;
-        this.speed = 1.2;
-        this.angle = Math.atan2(player.y - y, player.x - x);
-    }
-    
-    update(deltaTime) {
-        // Perseguir jogador
-        const dx = player.x - this.x;
-        const dy = player.y - this.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist > 0.01) {
-            this.angle = Math.atan2(dy, dx);
-            this.x += Math.cos(this.angle) * this.speed * deltaTime * 60;
-            this.y += Math.sin(this.angle) * this.speed * deltaTime * 60;
-        }
-        
-        return this.x > -50 && this.x < WIDTH + 50 && this.y > -50 && this.y < HEIGHT + 50;
-    }
-    
-    draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.angle);
-        
-        // Triângulo inimigo (vermelho)
-        ctx.fillStyle = '#ff3366';
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = '#ff3366';
-        ctx.beginPath();
-        ctx.moveTo(14, 0);
-        ctx.lineTo(-8, -6);
-        ctx.lineTo(-8, 6);
-        ctx.closePath();
-        ctx.fill();
-        
-        ctx.restore();
-    }
-}
-
 function spawnEnemy() {
     let x, y;
     const side = Math.floor(Math.random() * 4);
@@ -234,18 +233,18 @@ function spawnEnemy() {
 }
 
 function updateEnemies(deltaTime) {
-    // Spawn de inimigos
+    // Spawn
     if (enemySpawnCounter <= 0) {
         const spawnCount = Math.min(2 + Math.floor(kills / 20), 5);
         for (let i = 0; i < spawnCount; i++) {
             spawnEnemy();
         }
-        enemySpawnCounter = 50 - Math.min(30, Math.floor(kills / 10));
+        enemySpawnCounter = 50 - Math.min(30, Math.floor(kills / 8));
     } else {
         enemySpawnCounter -= deltaTime * 60;
     }
     
-    // Atualizar inimigos
+    // Atualizar
     for (let i = 0; i < enemies.length; i++) {
         const active = enemies[i].update(deltaTime);
         if (!active) {
@@ -294,7 +293,7 @@ function checkCollisions() {
         }
     }
     
-    // Atualizar explosões
+    // Explosões
     for (let i = 0; i < explosions.length; i++) {
         const active = explosions[i].update(0.016);
         if (!active) {
@@ -330,29 +329,27 @@ function drawPlayer() {
     ctx.translate(player.x, player.y);
     ctx.rotate(player.angle);
     
-    // Efeito de invencibilidade (piscar)
     if (player.invincibleTimer > 0 && Math.floor(Date.now() / 50) % 2 === 0) {
         ctx.globalAlpha = 0.5;
     }
     
-    // Triângulo do jogador (azul)
     ctx.fillStyle = '#00ffff';
     ctx.shadowBlur = 10;
     ctx.shadowColor = '#00ffff';
     ctx.beginPath();
-    ctx.moveTo(16, 0);
-    ctx.lineTo(-10, -8);
-    ctx.lineTo(-10, 8);
+    ctx.moveTo(18, 0);
+    ctx.lineTo(-12, -9);
+    ctx.lineTo(-12, 9);
     ctx.closePath();
     ctx.fill();
     
-    // Rastro de propulsão
-    if (keys.ArrowUp || keys.KeyW) {
+    // Rastro
+    if ((keys.ArrowUp || keys.KeyW || mobileUp) && gameRunning) {
         ctx.fillStyle = '#ff6600';
         ctx.beginPath();
-        ctx.moveTo(-10, -4);
-        ctx.lineTo(-18, 0);
-        ctx.lineTo(-10, 4);
+        ctx.moveTo(-12, -5);
+        ctx.lineTo(-22, 0);
+        ctx.lineTo(-12, 5);
         ctx.fill();
     }
     
@@ -440,6 +437,12 @@ function startGame() {
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('gameUI').classList.remove('hidden');
     document.getElementById('instructions').classList.remove('hidden');
+    
+    // Mostrar controles mobile se for touch
+    if ('ontouchstart' in window) {
+        document.getElementById('mobileControls').classList.add('show');
+    }
+    
     updateUI();
 }
 
@@ -454,7 +457,7 @@ function playSound() {
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.frequency.value = 880;
-        gain.gain.value = 0.08;
+        gain.gain.value = 0.06;
         osc.start();
         gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
         osc.stop(audioCtx.currentTime + 0.1);
@@ -462,6 +465,7 @@ function playSound() {
 }
 
 // ==================== CONTROLES ====================
+// Teclado
 document.addEventListener('keydown', (e) => {
     const code = e.code;
     if (keys.hasOwnProperty(code)) {
@@ -478,20 +482,27 @@ document.addEventListener('keyup', (e) => {
     }
 });
 
-// Mouse para mirar (opcional - faz a nave olhar para o mouse)
+// Mouse para mirar
 canvas.addEventListener('mousemove', (e) => {
+    if (!gameRunning) return;
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    mouseX = (e.clientX - rect.left) * scaleX;
-    mouseY = (e.clientY - rect.top) * scaleY;
-    
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
+    player.angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+});
+
+// Clique para atirar (desktop)
+canvas.addEventListener('mousedown', (e) => {
+    e.preventDefault();
     if (gameRunning) {
-        player.angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+        shoot();
     }
 });
 
-canvas.addEventListener('mousedown', (e) => {
+// Toque para atirar (mobile)
+canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
     if (gameRunning) {
         shoot();
@@ -500,14 +511,52 @@ canvas.addEventListener('mousedown', (e) => {
 
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
-// Iniciar áudio no primeiro clique
+// Controles Mobile (Botões)
+const btnUp = document.getElementById('btnUp');
+const btnDown = document.getElementById('btnDown');
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
+const btnShoot = document.getElementById('btnShoot');
+
+if (btnUp) {
+    btnUp.addEventListener('touchstart', (e) => { e.preventDefault(); mobileUp = true; });
+    btnUp.addEventListener('touchend', () => { mobileUp = false; });
+    btnUp.addEventListener('mousedown', () => { mobileUp = true; });
+    btnUp.addEventListener('mouseup', () => { mobileUp = false; });
+    
+    btnDown.addEventListener('touchstart', (e) => { e.preventDefault(); mobileDown = true; });
+    btnDown.addEventListener('touchend', () => { mobileDown = false; });
+    btnDown.addEventListener('mousedown', () => { mobileDown = true; });
+    btnDown.addEventListener('mouseup', () => { mobileDown = false; });
+    
+    btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); mobileLeft = true; });
+    btnLeft.addEventListener('touchend', () => { mobileLeft = false; });
+    btnLeft.addEventListener('mousedown', () => { mobileLeft = true; });
+    btnLeft.addEventListener('mouseup', () => { mobileLeft = false; });
+    
+    btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); mobileRight = true; });
+    btnRight.addEventListener('touchend', () => { mobileRight = false; });
+    btnRight.addEventListener('mousedown', () => { mobileRight = true; });
+    btnRight.addEventListener('mouseup', () => { mobileRight = false; });
+    
+    btnShoot.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (gameRunning) shoot();
+    });
+    btnShoot.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (gameRunning) shoot();
+    });
+}
+
+// Iniciar áudio
 canvas.addEventListener('click', () => {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
 });
 
-// Botões
+// Botões principais
 document.getElementById('startButton').addEventListener('click', () => {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -526,35 +575,29 @@ function gameLoop(timestamp) {
     let deltaTime = Math.min(0.033, (timestamp - lastTimestamp) / 1000);
     if (deltaTime < 0.01) deltaTime = 0.016;
     
-    // Limpar tela
+    // Limpar
     ctx.fillStyle = '#050510';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
     
-    // Desenhar cenário
     drawStars();
     
     if (gameRunning && gameStarted) {
-        // Atualizar lógica
         updatePlayer(deltaTime);
         updateBullets(deltaTime);
         updateEnemies(deltaTime);
         checkCollisions();
         
-        // Desenhar elementos
         drawBullets();
         drawEnemies();
         drawPlayer();
         drawExplosions();
     } else if (gameStarted && !gameRunning) {
-        // Game over - desenhar apenas o que sobrou
         drawBullets();
         drawEnemies();
         drawPlayer();
         drawExplosions();
     } else if (!gameStarted) {
-        // Tela de início - desenhar nave paradinha
         drawPlayer();
-        // Desenhar alguns inimigos decorativos
         if (enemies.length === 0 && Math.random() < 0.02) {
             spawnEnemy();
         }
@@ -565,5 +608,4 @@ function gameLoop(timestamp) {
     requestAnimationFrame(gameLoop);
 }
 
-// ==================== INICIALIZAÇÃO ====================
 gameLoop(0);
